@@ -6,6 +6,6 @@
 ## Licenza
 Questo progetto è sotto la tutela della licenza **GNU General Public License v3**. Vedi la [LICENZA](https://github.com/computerpapi/uBiddrazzu/blob/main/LICENSE).
 
-## Contributori e mantenitori
+## Mantenitori
 - [computerpapi](https://github.com/computerpapi)
 - [nerocitrigno](https://github.com/nerocitrigno)
