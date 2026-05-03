@@ -13,9 +13,31 @@ RISORSE:
 
 
 
+// SCACCHIERA
+/* 
+  Rappresentare la scacchiera in questo modo è l'opzione migliore perché è più flessibile e non c'è bisogno di calcolare l'esadecimale di ogni posizione
+  ogni volta perché viene eseguita automaticamente dal compilatore facendo lo shift di un ULL intero con la posizione sulla scacchiera.
+*/
+enum {
+  a1, b1, c1, d1, e1, f1, g1, h1,
+  a2, b2, c2, d2, e2, f2, g2, h2,
+  a3, b3, c3, d3, e3, f3, g3, h3,
+  a4, b4, c4, d4, e4, f4, g4, h4,
+  a5, b5, c5, d5, e5, f5, g5, h5,
+  a6, b6, c6, d6, e6, f6, g6, h6,
+  a7, b7, c7, d7, e7, f7, g7, h7,
+  a8, b8, c8, d8, e8, f8, g8, h8,
+};
+
+
+// GIOCATORI
+enum { WHITE, BLACK };
+
+
+
 // ====================| COSTANTI |====================
 typedef uint64_t U64; 
-#define C64(n) UINT64_C(n)
+#define C64(n) UINT64_C(n) // Creo una macro per far in modo che il compilatore tratta gli ULL allo stesso modo su tutte le macchine (standard C) 
 
 // VALORE DEI PEZZI
 const int KNIGHT_VALUE = 3, BISHOP_VALUE = 3;
@@ -24,20 +46,20 @@ const int QUEEN_VALUE =  9;
 
   
 // MASCHERE DEI PEZZI
-U64 whiteKing    = C64(0x10);
-U64 whiteQueen   = C64(0x08);
-U64 whiteKnights = C64(0x42);
-U64 whiteBishops = C64(0x24);
-U64 whiteRooks   = C64(0x81);
-U64 whitePawns   = C64(0xFF00);
+U64 whiteKing = C64(1) << e1;
+U64 whiteQueen = C64(1) << d1;
+U64 whiteKnights = (C64(1) << b1) | (C64(1) << g1);
+U64 whiteBishops = (C64(1) << c1) | (C64(1) << f1);
+U64 whiteRooks = (C64(1) << a1) | (C64(1) << h1);
+U64 whitePawns = C64(0xFF) << a2;
 U64 whitePieces;
 
-U64 blackKing    = C64(0x10) << 56;
-U64 blackQueen   = C64(0x08) << 56;
-U64 blackKnights = C64(0x42) << 56;
-U64 blackBishops = C64(0x24) << 56;
-U64 blackRooks   = C64(0x81) << 56;
-U64 blackPawns   = C64(0xFF00) << 40;
+U64 blackKing = C64(1) << e8;
+U64 blackQueen = C64(1) << d8;
+U64 blackKnights = (C64(1) << b8) | (C64(1) << g8);
+U64 blackBishops = (C64(1) << c8) | (C64(1) << f8);
+U64 blackRooks = (C64(1) << a8) | (C64(1) << h8);
+U64 blackPawns = C64(0xFF) << a7;
 U64 blackPieces;
 
 U64 occupiedSquares;
@@ -50,13 +72,13 @@ bool blackCheckmate = false;
 bool stall = false;
 
 // EVALUATION
-int evaluation = 0;
+int evaluation;
 
 
 
 void initBoard() {
   /* In C le variabili globali non possono essere definite usando altre variabili globali, quindi le inizializzo non appena viene avviato il programma */
-  U64 blackPieces = whiteKing | whiteQueen | whiteKnights | whiteBishops | whiteRooks | whitePawns;
+  U64 whitePieces = whiteKing | whiteQueen | whiteKnights | whiteBishops | whiteRooks | whitePawns;
   U64 blackPieces = blackKing | blackQueen | blackKnights | blackBishops | blackRooks | blackPawns;
   U64 occupiedSquares = whitePieces | blackPieces;
   U64 emptySquares = ~occupiedSquares;
@@ -101,23 +123,13 @@ bool getCellState(int index) {
 
 
 // ====================| CALCOLO PEZZI BIANCHI E NERI |====================
-int calculateWhitePieces() {
-  int pawns = __builtin_popcountll(whitePawns);
-  int bishops = __builtin_popcountll(whiteBishops) * BISHOP_VALUE;
-  int knights = __builtin_popcountll(whiteKnights) * KNIGHT_VALUE;
-  int rooks = __builtin_popcountll(whitePawns) * ROOK_VALUE;
-  int queen = __builtin_popcountll(whitePawns) * QUEEN_VALUE;
-  
-  return pawns + bishops + knights + rooks + queen;
-}
-
-
-int calculateBlackPieces() {
-  int pawns = __builtin_popcountll(blackPawns);
-  int bishops = __builtin_popcountll(blackBishops) * BISHOP_VALUE;
-  int knights = __builtin_popcountll(blackKnights) * KNIGHT_VALUE;
-  int rooks = __builtin_popcountll(blackPawns) * ROOK_VALUE;
-  int queen = __builtin_popcountll(blackQueen) * QUEEN_VALUE;
+int calculatePieces(int color) {
+  /* __builtin_popcountll() è una funzione integrata di C che calcola il numero di bit impostati a 1 di una particolare sequenza di bit */
+  int pawns = __builtin_popcountll((color == WHITE) ? whitePawns : blackPawns);
+  int bishops = __builtin_popcountll((color == WHITE) ? whiteBishops : blackBishops) * BISHOP_VALUE;
+  int knights = __builtin_popcountll((color == WHITE) ? whiteKnights : blackKnights) * KNIGHT_VALUE;
+  int rooks = __builtin_popcountll((color == WHITE) ? whiteRooks : blackRooks) * ROOK_VALUE;
+  int queen = __builtin_popcountll((color == WHITE) ? whiteQueen : blackQueen) * QUEEN_VALUE;
   
   return pawns + bishops + knights + rooks + queen;
 }
@@ -126,17 +138,13 @@ int calculateBlackPieces() {
 
 // ====================| EVALUAZIONE |====================
 void calculateEvaluation() {
-  /* 
-    Calcola l'evaluazione. Se è maggiore di 0 il bianco ha il vantaggio; se è minore di 0 il nero ha il vantaggio. 
-    Se 0 allora sitauzione di parità 
-  */
+  /* Calcola l'evaluazione. Se è maggiore di 0 il bianco ha il vantaggio; se è minore di 0 il nero ha il vantaggio. Se 0 allora sitauzione di parità */
 
   if (whiteCheckmate) { evaluation = 100; }
   if (blackCheckmate) { evaluation = -100; }
   if (stall) { evaluation = 0; }
 
-  evaluation += calculateWhitePieces();
-  evaluation -= calculateBlackPieces();
+  evaluation = calculatePieces(WHITE) - calculatePieces(BLACK);
 
   // Aggiungere il calcolo relativo dei pezzi sulla scacchiera
 }
@@ -145,7 +153,13 @@ void calculateEvaluation() {
 
 // ====================| RENDERING SCACCHIERA NEL TERMINALE |====================
 void showBoard() {
-
+  for (int square = a1; square <= h8; square++) {
+    printf("%d ", square);
+    
+    if (square != 0 && square % 7 == 0) {
+      printf("\n");
+    }
+  }
 }
 
 
@@ -154,6 +168,9 @@ void showBoard() {
 int main() {
   initBoard();
   calculateEvaluation();
-  printf("uBiddrazzu - Chess Engine\n");
+  printf("uBiddrazzu - Chess Engine\n\n");
+  showBoard();
+  printf("Evaluation: %d", evaluation);
+
   return 0;
 }
