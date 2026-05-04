@@ -62,7 +62,6 @@ U64 blackRooks = (C64(1) << a8) | (C64(1) << h8);
 U64 blackPawns = C64(0xFF) << a7;
 U64 blackPieces;
 
-U64 occupiedSquares;
 U64 emptySquares;
 U64 board; 
 
@@ -80,24 +79,8 @@ void initBoard() {
   /* In C le variabili globali non possono essere definite usando altre variabili globali, quindi le inizializzo non appena viene avviato il programma */
   U64 whitePieces = whiteKing | whiteQueen | whiteKnights | whiteBishops | whiteRooks | whitePawns;
   U64 blackPieces = blackKing | blackQueen | blackKnights | blackBishops | blackRooks | blackPawns;
-  U64 occupiedSquares = whitePieces | blackPieces;
-  U64 emptySquares = ~occupiedSquares;
-  U64 board = occupiedSquares & emptySquares; 
-}
-
-
-
-int calculateIndex(int row, int column) {
-  /* 
-    Normalmente, per accedere alla posizione di un determinato elemento in una matrice bidimensionale (come la scacchiera) 
-    usiamo le coordinate X (riga) e Y (colonna) con una sintassi simile a matrice[x][y].
-    Per evitare questo e ottenere direttamente l'indice in maniera più veloce si usa una proprietà (Row Major Order) 
-    che consente di trasformare la matrice bidimensionale in un vettore (che ha una sola dimensione).
-
-    ROW MAJOR ORDER = riga * numero_di_colonne + colonna
-  */
-
-  return row * 8 + column;
+  U64 board = whitePieces | blackPieces;
+  U64 emptySquares = ~board; 
 }
 
 
@@ -110,7 +93,7 @@ U64 setCellState(int index) {
 }
 
 
-bool getCellState(int index) {
+bool getSquareState(int index) {
   /*
     Restituisce il valore di una determinata cella: true se è occupata, false se è libera.
     Faccio lo shift a sinistra del bit che voglio comparare e poi uso il bitwise END per verificare se i bit sono uguali o no
@@ -118,6 +101,37 @@ bool getCellState(int index) {
 
   U64 square = 1ULL << index;
   return (bool) (board & square) != 0;
+}
+
+
+char getPieceTypeFromSquare(int square) {
+  U64 piece = C64(1) << square; // Creo una bitboard in cui l'indice square è 1 così la posso comparare con le altre bitboard
+
+  if (whiteKing & piece) {
+    return 'K';
+  } else if (whiteQueen & piece) {
+    return 'Q';
+  } else if (whiteBishops & piece) {
+    return 'B';
+  } else if (whiteKnights & piece) {
+    return 'N';
+  } else if (whiteRooks & piece) {
+    return 'R';
+  } else if (whitePawns & piece) {
+    return 'P';
+  } else if (blackKing & piece) {
+    return 'k';
+  } else if (blackQueen & piece) {
+    return 'q';
+  } else if (blackBishops & piece) {
+    return 'b';
+  } else if (blackKnights & piece) {
+    return 'n';
+  } else if (blackRooks & piece) {
+    return 'r';
+  } else if (blackPawns & piece) {
+    return 'p';
+  }
 }
 
 
@@ -154,10 +168,15 @@ void calculateEvaluation() {
 // ====================| RENDERING SCACCHIERA NEL TERMINALE |====================
 void showBoard() {
   for (int square = a1; square <= h8; square++) {
-    printf("%d ", square);
-    
-    if (square != 0 && square % 7 == 0) {
+    if (square != 0 && square % 8 == 0) {
       printf("\n");
+    }
+
+    char pieceType = getPieceTypeFromSquare(square);
+    if (pieceType) {
+      printf("%c  ", pieceType);
+    } else {
+      printf(".  ");
     }
   }
 }
@@ -170,7 +189,7 @@ int main() {
   calculateEvaluation();
   printf("uBiddrazzu - Chess Engine\n\n");
   showBoard();
-  printf("Evaluation: %d", evaluation);
+  printf("\nEvaluation: %d", evaluation);
 
   return 0;
 }
