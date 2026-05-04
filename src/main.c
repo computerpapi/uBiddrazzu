@@ -18,7 +18,7 @@ RISORSE:
   Rappresentare la scacchiera in questo modo è l'opzione migliore perché è più flessibile e non c'è bisogno di calcolare l'esadecimale di ogni posizione
   ogni volta perché viene eseguita automaticamente dal compilatore facendo lo shift di un ULL intero con la posizione sulla scacchiera.
 */
-enum {
+enum Checkboard {
   a1, b1, c1, d1, e1, f1, g1, h1,
   a2, b2, c2, d2, e2, f2, g2, h2,
   a3, b3, c3, d3, e3, f3, g3, h3,
@@ -62,6 +62,25 @@ U64 blackRooks = (C64(1) << a8) | (C64(1) << h8);
 U64 blackPawns = C64(0xFF) << a7;
 U64 blackPieces;
 
+// MASCHERE DELLE RIGHE E DELLE COLONNE
+U64 rank_1 = C64(0xFF) << a1;
+U64 rank_2 = C64(0xFF) << a2;
+U64 rank_3 = C64(0xFF) << a3;
+U64 rank_4 = C64(0xFF) << a4;
+U64 rank_5 = C64(0xFF) << a5;
+U64 rank_6 = C64(0xFF) << a6;
+U64 rank_7 = C64(0xFF) << a7;
+U64 rank_8 = C64(0xFF) << a8;
+
+U64 file_A = C64(0x0101010101010101);
+U64 file_B;
+U64 file_C;
+U64 file_D;
+U64 file_E;
+U64 file_F;
+U64 file_G;
+U64 file_H;
+
 U64 emptySquares;
 U64 board; 
 
@@ -81,6 +100,14 @@ void initBoard() {
   U64 blackPieces = blackKing | blackQueen | blackKnights | blackBishops | blackRooks | blackPawns;
   U64 board = whitePieces | blackPieces;
   U64 emptySquares = ~board; 
+
+  U64 file_B = file_A << 1;
+  U64 file_C = file_A << 2;
+  U64 file_D = file_A << 3;
+  U64 file_E = file_A << 4;
+  U64 file_F = file_A << 5;
+  U64 file_G = file_A << 6;
+  U64 file_H = file_A << 7;
 }
 
 
@@ -131,6 +158,8 @@ char getPieceTypeFromSquare(int square) {
     return 'r';
   } else if (blackPawns & piece) {
     return 'p';
+  } else {
+    return '.';
   }
 }
 
@@ -167,18 +196,20 @@ void calculateEvaluation() {
 
 // ====================| RENDERING SCACCHIERA NEL TERMINALE |====================
 void showBoard() {
-  for (int square = a1; square <= h8; square++) {
-    if (square != 0 && square % 8 == 0) {
-      printf("\n");
-    }
+  int rank = 8;
+  printf("\n\n   +---+---+---+---+---+---+---+---+\n %d |", rank);
 
-    char pieceType = getPieceTypeFromSquare(square);
-    if (pieceType) {
-      printf("%c  ", pieceType);
-    } else {
-      printf(".  ");
+  for (int square = h8; square >= a1; square--) {
+    printf(" %c |", getPieceTypeFromSquare(square));
+
+    if (square != 0 && square % 8 == 0) {
+      rank--;
+      printf("\n   +---+---+---+---+---+---+---+---+\n %d |", rank);
     }
   }
+
+  printf("\n   +---+---+---+---+---+---+---+---+\n");
+  printf("     A   B   C   D   E   F   G   H\n");
 }
 
 
@@ -187,9 +218,9 @@ void showBoard() {
 int main() {
   initBoard();
   calculateEvaluation();
-  printf("uBiddrazzu - Chess Engine\n\n");
+  printf("\nuBiddrazzu - Chess Engine\n");
   showBoard();
-  printf("\nEvaluation: %d", evaluation);
+  printf("\n\nEvaluation: %d", evaluation);
 
   return 0;
 }
