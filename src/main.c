@@ -196,20 +196,19 @@ void calculateEvaluation() {
 
 // ====================| RENDERING SCACCHIERA NEL TERMINALE |====================
 void showBoard() {
-  int rank = 8;
-  printf("\n\n   +---+---+---+---+---+---+---+---+\n %d |", rank);
+  int startingSquare = a8;
+  int rank;
 
-  for (int square = h8; square >= a1; square--) {
-    printf(" %c |", getPieceTypeFromSquare(square));
+  for (; startingSquare >= 0; startingSquare-=8) {
+    rank = startingSquare / 8 + 1;
+    printf("\n   +---+---+---+---+---+---+---+---+\n %d |", rank);
 
-    if (square != 0 && square % 8 == 0) {
-      rank--;
-      printf("\n   +---+---+---+---+---+---+---+---+\n %d |", rank);
+    for (int square = startingSquare; square <= startingSquare + 7; square++) {
+      printf(" %c |", getPieceTypeFromSquare(square));
     }
   }
 
-  printf("\n   +---+---+---+---+---+---+---+---+\n");
-  printf("     A   B   C   D   E   F   G   H\n");
+  printf("\n   +---+---+---+---+---+---+---+---+\n     A   B   C   D   E   F   G   H\n");
 }
 
 
