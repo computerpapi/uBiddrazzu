@@ -9,6 +9,9 @@ RISORSE:
   https://www.youtube.com/watch?v=MzfQ8H16n0M
   https://www.youtube.com/watch?v=4ohJQ9pCkHI
   https://youtu.be/w4FFX_otR-4?si=TPPAsuq10Gsf0chV
+
+  ENCODING MOSSE:
+  https://www.youtube.com/watch?v=gyf3mr1LI7A
 */
 
 
@@ -196,10 +199,9 @@ void calculateEvaluation() {
 
 // ====================| RENDERING SCACCHIERA NEL TERMINALE |====================
 void showBoard() {
-  int startingSquare = a8;
   int rank;
 
-  for (; startingSquare >= 0; startingSquare-=8) {
+  for (int startingSquare = a8; startingSquare >= 0; startingSquare-=8) {
     rank = startingSquare / 8 + 1;
     printf("\n   +---+---+---+---+---+---+---+---+\n %d |", rank);
 
