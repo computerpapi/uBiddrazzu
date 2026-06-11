@@ -62,20 +62,20 @@ const int QUEEN_VALUE = 9;
 
   
 // MASCHERE DEI PEZZI
-U64 whiteKing = C64(1) << e1;
-U64 whiteQueen = C64(1) << d1;
-U64 whiteKnights = (C64(1) << b1) | (C64(1) << g1);
-U64 whiteBishops = (C64(1) << c1) | (C64(1) << f1);
-U64 whiteRooks = (C64(1) << a1) | (C64(1) << h1);
-U64 whitePawns = C64(0xFF) << a2;
+U64 whiteKing = C64(0);
+U64 whiteQueen = C64(0);
+U64 whiteKnights = C64(0);
+U64 whiteBishops = C64(0);
+U64 whiteRooks = C64(0);
+U64 whitePawns = C64(0);
 U64 whitePieces;
 
-U64 blackKing = C64(1) << e8;
-U64 blackQueen = C64(1) << d8;
-U64 blackKnights = (C64(1) << b8) | (C64(1) << g8);
-U64 blackBishops = (C64(1) << c8) | (C64(1) << f8);
-U64 blackRooks = (C64(1) << a8) | (C64(1) << h8);
-U64 blackPawns = C64(0xFF) << a7;
+U64 blackKing = C64(0);
+U64 blackQueen = C64(0);
+U64 blackKnights = C64(0);
+U64 blackBishops = C64(0);
+U64 blackRooks = C64(0);
+U64 blackPawns = C64(0);
 U64 blackPieces;
 
 // MASCHERE DELLE RIGHE E DELLE COLONNE
@@ -345,7 +345,7 @@ void showBoard() {
 // ============================================================
 // ====================| INIZIALIZZAZIONE |====================
 // ============================================================
-void initBoard() {
+void initEngine() {
   /* In C le variabili globali non possono essere definite usando altre variabili globali, quindi le inizializzo non appena viene avviato il programma */
   whitePieces = whiteKing | whiteQueen | whiteKnights | whiteBishops | whiteRooks | whitePawns;
   blackPieces = blackKing | blackQueen | blackKnights | blackBishops | blackRooks | blackPawns;
@@ -365,6 +365,26 @@ void initBoard() {
 // ===============================================================
 // ====================| IMPORT & EXPORT FEN |====================
 // ===============================================================
+void clearPieces() {
+  // Resetta le maschere dei pezzi
+  
+  whiteKing = C64(0);
+  whiteQueen = C64(0);
+  whiteKnights = C64(0);
+  whiteBishops = C64(0);
+  whiteRooks = C64(0);
+  whitePawns = C64(0);
+
+  blackKing = C64(0);
+  blackQueen = C64(0);
+  blackKnights = C64(0);
+  blackBishops = C64(0);
+  blackRooks = C64(0);
+  blackPawns = C64(0);
+}
+
+
+
 void parseBoard(char board[]) {
   int squareNumber = 0;
   char *pointer = board;
@@ -464,6 +484,8 @@ void parseCastlingRights(char rights[]) {
 
 
 void importFen(char fen[]) {
+  clearPieces();
+
   char *context = NULL;
   char *delimitator = " ";
   char *token = strtok_s(fen, delimitator, &context);
@@ -530,7 +552,7 @@ int main() {
   printf("\nuBiddrazzu (uB) - Chess Engine\n");
 
   importFen(initialPosition); // Inizializzazione
-  initBoard();
+  initEngine();
   initPrecalculatedMoves();
   calculateEvaluation();
   // importFen("r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4"); // Early game
