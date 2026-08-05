@@ -56,9 +56,12 @@ typedef uint32_t U32;
 #define C64(n) UINT64_C(n) // Creo una macro per far in modo che il compilatore tratta gli ULL allo stesso modo su tutte le macchine (standard C) 
 
 // VALORE DEI PEZZI
-const int KNIGHT_VALUE, BISHOP_VALUE = 3;
+const int KNIGHT_VALUE = 3, BISHOP_VALUE = 3;
 const int ROOK_VALUE = 5;
 const int QUEEN_VALUE = 9;
+
+// POSIZIONE INIZIALE DELLA SCACCHIERA
+char const INITIAL_POSITION[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
   
 // MASCHERE DEI PEZZI
@@ -68,7 +71,7 @@ U64 whiteKnights = C64(0);
 U64 whiteBishops = C64(0);
 U64 whiteRooks = C64(0);
 U64 whitePawns = C64(0);
-U64 whitePieces;
+U64 whitePieces = C64(0);
 
 U64 blackKing = C64(0);
 U64 blackQueen = C64(0);
@@ -76,7 +79,7 @@ U64 blackKnights = C64(0);
 U64 blackBishops = C64(0);
 U64 blackRooks = C64(0);
 U64 blackPawns = C64(0);
-U64 blackPieces;
+U64 blackPieces = C64(0);
 
 // MASCHERE DELLE RIGHE E DELLE COLONNE
 U64 rank_1 = C64(0xFF) << a1;
@@ -88,20 +91,19 @@ U64 rank_6 = C64(0xFF) << a6;
 U64 rank_7 = C64(0xFF) << a7;
 U64 rank_8 = C64(0xFF) << a8;
 
+// Inizializzo le variabili perché altrimenti avrebbero contenuto random che potrebbe interferire con il funzionamento del motore
 U64 file_A = C64(0x0101010101010101);
-U64 file_B;
-U64 file_C;
-U64 file_D;
-U64 file_E;
-U64 file_F;
-U64 file_G;
-U64 file_H;
+U64 file_B = C64(0);
+U64 file_C = C64(0);
+U64 file_D = C64(0);
+U64 file_E = C64(0);
+U64 file_F = C64(0);
+U64 file_G = C64(0);
+U64 file_H = C64(0);
 
-U64 emptySquares;
-U64 board; 
+U64 emptySquares = C64(0);
+U64 board = C64(0); 
 
-// POSIZIONE INIZIALE DELLA SCACCHIERA
-char initialPosition[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 // REGOLE DEL GIOCO
 bool whiteCheckmate = false;
@@ -111,23 +113,23 @@ bool whiteLongCastle = false;
 bool whiteShortCastle = false;
 bool blackLongCastle = false;
 bool blackShortCastle = false;
-int enPassantSquare;
+int enPassantSquare = 0;
 int turn = WHITE;
 
-int moveNumber;
-int semiMoves;
-int evaluation;
+int moveNumber = 0;
+int semiMoves = 0;
+int evaluation = 0;
 
 // LISTA DELLE MOSSE PSEUDO-LEGALI
-U64 knightAttacks[64];
-U64 kingAttacks[64];
-U64 whitePawnsAttacks[64];
-U64 blackPawnsAttacks[64];
-U64 rookAndBishopAttacks[8192]; // Contiene tutte le mosse di rook e bishop. Invece di creare due array diversi così si risparmia overhead
-U64 rookMask [64];
-U64 bishopMask[64];
-U32 rookBase [64];
-U32 bishopBase[64];
+U64 knightAttacks[64] = {0};
+U64 kingAttacks[64] = {0};
+U64 whitePawnsAttacks[64] = {0};
+U64 blackPawnsAttacks[64] = {0};
+U64 rookAndBishopAttacks[107648] = {0}; // Contiene tutte le mosse di rook e bishop. Invece di creare due array diversi così si risparmia overhead
+U64 rookMask [64] = {0};
+U64 bishopMask[64] = {0};
+U32 rookBase [64] = {0};
+U32 bishopBase[64] = {0};
 
 
 
@@ -190,7 +192,7 @@ static inline char getPieceType(int square) {
 void calculateKnightMoves() {
   for (int i = a1; i <= h8; i++) {
     U64 knight = C64(1) << i;
-    U64 attackedSquares = 0;
+    U64 attackedSquares = C64(0);
 
     attackedSquares |= (knight << 15) & ~file_H;             // topLeftSquare
     attackedSquares |= (knight << 17) & ~file_A;             // topRightSquare
@@ -208,7 +210,7 @@ void calculateKnightMoves() {
 void calculateKingMoves() {
   for (int i = a1; i <= h8; i++) {
     U64 king = C64(1) << i;
-    U64 attackedSquares = 0;
+    U64 attackedSquares = C64(0);
 
     attackedSquares |= (king << 9) & ~file_A; // topLeftSquare
     attackedSquares |= (king << 8);           // topCenterSquare
@@ -254,14 +256,15 @@ void calculateBlackPawnsMoves() {
   Ques
 */
 void calculateRookMoves() {
-  for (int sq = a1; sq <= h8; sq++) {
-    rookAndBishopAttacks[rookBase[sq] + _pext_u64(board, rookMask[sq])];
+  for (int i = a1; i <= h8; i++) {
+    
   }
 }
 
 void calculateBishopMoves() {
   for (int sq = a1; sq <= h8; sq++) {
-    rookAndBishopAttacks[bishopBase[sq] + _pext_u64(board, bishopMask[sq])];
+    U64 index = _pext_u64(board, bishopMask[sq]); // Estraggo i bit (1) degli ostacoli sulla traiettoria dell'alfiere
+    int finalIndex = bishopBase[sq] + index; // Ottengo l'indice della casella dove l'alfiere può spostarsi
   }
 }
 
@@ -310,11 +313,11 @@ static inline int calculatePieces(int color) {
 void calculateEvaluation() {
   /* Calcola l'evaluazione. Se è maggiore di 0 il bianco ha il vantaggio; se è minore di 0 il nero ha il vantaggio. Se 0 allora sitauzione di parità */
 
+  evaluation = calculatePieces(WHITE) - calculatePieces(BLACK);
+
   if (whiteCheckmate) { evaluation = 10; }
   if (blackCheckmate) { evaluation = -10; }
   if (draw) { evaluation = 0; }
-
-  evaluation = calculatePieces(WHITE) - calculatePieces(BLACK);
 
   // Aggiungere il calcolo relativo dei pezzi sulla scacchiera
 }
@@ -336,9 +339,13 @@ void showBoard() {
   }
 
   printf("\n   +---+---+---+---+---+---+---+---+\n     A   B   C   D   E   F   G   H\n");
-
-  // MOSTRA INTERFACCIA
-  printf("Moves: %d | Turn (0 = black; 1 = white): %s", moveNumber, turn);
+  printf("\nMoves                   : %d", moveNumber);
+  printf("\nSemimoves               : %d", semiMoves);
+  printf("\nTurn      (1 = W; 0 = B): %d", turn);
+  printf("\nWhite Long Castle  (WLC): %d", whiteLongCastle);
+  printf("\nWhite Short Castle (WSC): %d", whiteShortCastle);
+  printf("\nBlack Long Castle  (BLC): %d", blackLongCastle);
+  printf("\nBlack Short Castle (BSC): %d\n\n", blackShortCastle);
 }
 
 
@@ -367,7 +374,7 @@ void initEngine() {
 // ===============================================================
 void clearPieces() {
   // Resetta le maschere dei pezzi
-  
+
   whiteKing = C64(0);
   whiteQueen = C64(0);
   whiteKnights = C64(0);
@@ -386,81 +393,37 @@ void clearPieces() {
 
 
 void parseBoard(char board[]) {
-  int squareNumber = 0;
+  int squareNumber;
+  char element;
+  int rank = 7;
+  int file = 0;
+  U64 pieceMask;
   char *pointer = board;
 
-  while (pointer != '\0') {
-    char element = *pointer; // Ottengo l'elemento dal suo indirizzo
-    U64 pieceMask = C64(1);
+  while (*pointer != '\0') {
+    element = *pointer; // Ottengo l'elemento dal suo indirizzo
+    pieceMask = C64(1);
+    squareNumber = rank * 8 + file;
 
     switch (element) {
-      case 'K':
-        whiteKing = pieceMask << squareNumber;
-        break;
-      
-      case 'Q':
-        whiteQueen = pieceMask << squareNumber;
-        break;
-      
-      case 'R':
-        whiteRooks = pieceMask << squareNumber;
-        break;
-      
-      case 'N':
-        whiteKnights = pieceMask << squareNumber;
-        break;
-      
-      case 'B':
-        whiteBishops = pieceMask << squareNumber;
-        break;
-      
-      case 'P':
-        whitePawns = pieceMask << squareNumber;
-        break;
+      case 'K': whiteKing = pieceMask << squareNumber; file++; break;
+      case 'Q': whiteQueen = pieceMask << squareNumber; file++; break;
+      case 'R': whiteRooks |= pieceMask << squareNumber; file++; break;
+      case 'N': whiteKnights |= pieceMask << squareNumber; file++; break;
+      case 'B': whiteBishops |= pieceMask << squareNumber; file++; break;
+      case 'P': whitePawns |= pieceMask << squareNumber; file++; break;
+      case 'k': blackKing = pieceMask << squareNumber; file++; break;
+      case 'q': blackQueen = pieceMask << squareNumber; file++; break;
+      case 'r': blackRooks |= pieceMask << squareNumber; file++; break;
+      case 'n': blackKnights |= pieceMask << squareNumber; file++; break;
+      case 'b': blackBishops |= pieceMask << squareNumber; file++; break;
+      case 'p': blackPawns |= pieceMask << squareNumber; file++; break;
 
-      case 'k':
-        blackKing = pieceMask << squareNumber;
-        break;
-      
-      case 'q':
-        blackQueen = pieceMask << squareNumber;
-        break;
-      
-      case 'r':
-        blackRooks = pieceMask << squareNumber;
-        break;
-      
-      case 'n':
-        blackKnights = pieceMask << squareNumber;
-        break;
-      
-      case 'b':
-        blackBishops = pieceMask << squareNumber;
-        break;
-      
-      case 'p':
-        blackPawns = pieceMask << squareNumber;
-        break;
+      case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': file += (element - '0'); break;
 
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9':
-        int spaces = element - '0'; // Converto il numero in intero
-        squareNumber += spaces; // Incremento il numero della casella
-        break;
-      
-      default:
-        squareNumber--; // Decremento perché incontro /
-        break;
+      case '/': rank -= 1; file = 0; break;
     }
 
-    squareNumber++;
     pointer++;
   }
 }
@@ -493,44 +456,34 @@ void importFen(char fen[]) {
   int i = 0;
 
   while (token != NULL) {
-    printf("Token: %s\n", token);
     char element = *token; // Ottengo l'elemento dal suo indirizzo
 
     switch (i) {
-      case 0:
-        parseBoard(element);
-        break;
-
-      case 1:
-        turn = (element == 'w') ? WHITE : BLACK;
-        break;
-
-      case 2:
-        parseCastlingRights(element);
-        break;
-
+      case 0: parseBoard(token); break;
+      case 1: turn = (element == 'w') ? WHITE : BLACK; break;
+      case 2: parseCastlingRights(token); break;
       case 3:    
         if (element != '-') {
-          char column = token - 'a';
-          int row = (token + 1) - '0' - 1;
+          char column = element - 'a';
+          int row = *(token + 1) - '0' - 1;
           enPassantSquare = row * 8 + column;
         } else {
           enPassantSquare = -1;
         }
         break;
-
-      case 4:
-        semiMoves = atoi(element); // Converte il numero da stringa (ASCII) in intero
-        break;
-
-      case 5:
-        moveNumber = atoi(element);
-        break;
+      case 4: semiMoves = atoi(token); break; // Converte il numero da stringa (ASCII) in intero 
+      case 5: moveNumber = atoi(token); break;
     }
 
     token = strtok_s(NULL, " ", &context);
     i++;
   }
+}
+
+
+
+void exportFen() {
+
 }
 
 
@@ -545,20 +498,23 @@ void initPrecalculatedMoves() {
 }
 
 
+
 // ================================================
 // ====================| MAIN |====================
 // ================================================
 int main() {
-  printf("\nuBiddrazzu (uB) - Chess Engine\n");
+  printf("\nuBiddrazzu (uB) Chess Engine - Realized by @computerpapi (Github)\n");
 
-  importFen(initialPosition); // Inizializzazione
+  char position[] = "8/8/8/3Q4/5P2/p1k4B/5KP1/8 w - - 1 61";
+  // "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4"
+  // "r1bqk2r/ppppbppp/3n4/4R3/8/8/PPPP1PPP/RNBQ1BK1 b kq - 0 8"
+  // "r1bq1rk1/ppppbppp/3n4/4R3/8/8/PPPP1PPP/RNBQ1BK1 w - - 1 9"
+  // "8/8/8/3Q4/5P2/p1k4B/5KP1/8 w - - 1 61"
+
+  importFen(position);
   initEngine();
   initPrecalculatedMoves();
   calculateEvaluation();
-  // importFen("r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4"); // Early game
-  // importFen("r1bqk2r/ppppbppp/3n4/4R3/8/8/PPPP1PPP/RNBQ1BK1 b kq - 0 8"); // Arrocco bianco
-  // importFen("r1bq1rk1/ppppbppp/3n4/4R3/8/8/PPPP1PPP/RNBQ1BK1 w - - 1 9"); // Arrocco nero
-  // importFen("8/8/8/3Q4/5P2/p1k4B/5KP1/8 w - - 1 61"); // Parte Finale
   showBoard();
 
   return 0;
