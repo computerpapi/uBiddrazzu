@@ -60,9 +60,6 @@ const int KNIGHT_VALUE = 3, BISHOP_VALUE = 3;
 const int ROOK_VALUE = 5;
 const int QUEEN_VALUE = 9;
 
-// POSIZIONE INIZIALE DELLA SCACCHIERA
-char const INITIAL_POSITION[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
   
 // MASCHERE DEI PEZZI
 U64 whiteKing = C64(0);
@@ -137,7 +134,8 @@ static inline U64 setCellState(int index) {
   /* Imposta il valore di una determinata cella. Usa shift a sinistra per comparare i bit */
 
   U64 newSquare = C64(1) << index;
-  return (board |= newSquare);
+  U64 temporaryBoard = board;
+  return temporaryBoard | newSquare;
 }
 
 
@@ -238,7 +236,7 @@ void calculateWhitePawnsMoves() {
 }
 
 void calculateBlackPawnsMoves() {
-  for (int i = a7; i >= h2; i--) {
+  for (int i = h7; i >= h2; i--) {
     U64 pawn = C64(1) << i;
     U64 squares = 0;
 
@@ -412,8 +410,8 @@ void parseBoard(char board[]) {
       case 'N': whiteKnights |= pieceMask << squareNumber; file++; break;
       case 'B': whiteBishops |= pieceMask << squareNumber; file++; break;
       case 'P': whitePawns |= pieceMask << squareNumber; file++; break;
-      case 'k': blackKing = pieceMask << squareNumber; file++; break;
-      case 'q': blackQueen = pieceMask << squareNumber; file++; break;
+      case 'k': blackKing |= pieceMask << squareNumber; file++; break;
+      case 'q': blackQueen |= pieceMask << squareNumber; file++; break;
       case 'r': blackRooks |= pieceMask << squareNumber; file++; break;
       case 'n': blackKnights |= pieceMask << squareNumber; file++; break;
       case 'b': blackBishops |= pieceMask << squareNumber; file++; break;
@@ -447,6 +445,8 @@ void parseCastlingRights(char rights[]) {
 
 
 void importFen(char fen[]) {
+  // La funziona dà per scontato che il FEN sia corretto
+
   clearPieces();
 
   char *context = NULL;
@@ -503,9 +503,10 @@ void initPrecalculatedMoves() {
 // ====================| MAIN |====================
 // ================================================
 int main() {
-  printf("\nuBiddrazzu (uB) Chess Engine - Realized by @computerpapi (Github)\n");
+  printf("\nuBiddrazzu (uB) Chess Engine - Realized by @computerpapi\n");
 
-  char position[] = "8/8/8/3Q4/5P2/p1k4B/5KP1/8 w - - 1 61";
+  char position[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
   // "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4"
   // "r1bqk2r/ppppbppp/3n4/4R3/8/8/PPPP1PPP/RNBQ1BK1 b kq - 0 8"
   // "r1bq1rk1/ppppbppp/3n4/4R3/8/8/PPPP1PPP/RNBQ1BK1 w - - 1 9"
